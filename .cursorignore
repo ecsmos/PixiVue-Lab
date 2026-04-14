@@ -1,0 +1,17 @@
+/*
+
+!/apps/
+/apps/*
+
+!/packages/
+/packages/*
+
+**/node_modules/
+**/dist/
+
+!/biome.json
+!/package.json
+!/tsconfig.json
+!/turbo.json
+
+!/apps/bunnies/
