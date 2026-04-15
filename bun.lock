@@ -7,6 +7,7 @@
       "devDependencies": {
         "@biomejs/biome": "latest",
         "turbo": "latest",
+        "typescript": "^6.0.2",
       },
     },
     "apps/bunnies": {
@@ -27,6 +28,10 @@
         "vite": "^8.0.4",
         "vue-tsc": "^3.2.6",
       },
+    },
+    "packages/utils": {
+      "name": "@pixivue-lab/utils",
+      "version": "0.0.1",
     },
   },
   "packages": {
@@ -99,6 +104,8 @@
     "@parcel/watcher-win32-x64": ["@parcel/watcher-win32-x64@2.5.6", "", { "os": "win32", "cpu": "x64" }, "sha512-hbQlYcCq5dlAX9Qx+kFb0FHue6vbjlf0FrNzSKdYK2APUf7tGfGxQCk2ihEREmbR6ZMc0MVAD5RIX/41gpUzTw=="],
 
     "@pixi/colord": ["@pixi/colord@2.9.6", "", {}, "sha512-nezytU2pw587fQstUu1AsJZDVEynjskwOL+kibwcdxsMBFqPsFFNA7xl0ii/gXuDi6M0xj3mfRJj8pBSc2jCfA=="],
+
+    "@pixivue-lab/utils": ["@pixivue-lab/utils@workspace:packages/utils"],
 
     "@rolldown/binding-android-arm64": ["@rolldown/binding-android-arm64@1.0.0-rc.15", "", { "os": "android", "cpu": "arm64" }, "sha512-YYe6aWruPZDtHNpwu7+qAHEMbQ/yRl6atqb/AhznLTnD3UY99Q1jE7ihLSahNWkF4EqRPVC4SiR4O0UkLK02tA=="],
 
