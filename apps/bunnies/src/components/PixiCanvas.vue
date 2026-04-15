@@ -94,7 +94,11 @@ fn mainFrag(
   @builtin(position) position: vec4<f32>
 ) -> @location(0) vec4<f32> {
     let t = bgUniforms.time * 0.1;
-    let st = uv * 2.0 - 1.0;
+    
+    // Calculate accurate screen UV [0, 1] ignoring padding and considering resolution
+    let screenUV = (position.xy - gfu.uGlobalFrame.xy) / gfu.uGlobalFrame.zw;
+    
+    let st = screenUV * 2.0 - 1.0;
     let aspect = bgUniforms.resolution.x / bgUniforms.resolution.y;
     let p = st * vec2<f32>(aspect, 1.0);
     
@@ -228,7 +232,10 @@ fn mainFrag(
 // Create UniformGroups
 const bgUniforms = new UniformGroup({
   time: { value: 0.0, type: 'f32' },
-  resolution: { value: [window.innerWidth, window.innerHeight], type: 'vec2<f32>' },
+  resolution: {
+    value: [window.innerWidth, window.innerHeight],
+    type: 'vec2<f32>',
+  },
   mouse: { value: [0.5, 0.5], type: 'vec2<f32>' },
 });
 
@@ -266,6 +273,7 @@ onMounted(async () => {
     resources: {
       bgUniforms,
     },
+    padding: 0,
   });
 
   // Create bunnies filter
