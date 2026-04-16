@@ -328,7 +328,7 @@ onMounted(async () => {
     for (const eid of ents) {
       // Add a bit of "wind" sway
       Velocity.x[eid] += Math.sin(time * 0.5 + Position.y[eid] * 0.01) * 0.01;
-      
+
       Position.x[eid] += Velocity.x[eid] * speedMultiplier * delta;
       Position.y[eid] += Velocity.y[eid] * speedMultiplier * delta;
       Rotation.angle[eid] += Rotation.angularVelocity[eid] * delta;
