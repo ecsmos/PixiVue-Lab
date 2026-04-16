@@ -31,7 +31,6 @@ jobs:
         run: bun run build
 
       - name: Prepare Deployment Directory 📂
-        description: Consolidates all app builds into a single directory structure for GH Pages
         run: |
           mkdir -p deploy_dist
           
