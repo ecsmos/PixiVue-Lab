@@ -1,0 +1,1 @@
+import{r as e}from"./index-BCnbEk-R.js";export{e as WebGLRenderer};
