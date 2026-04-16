@@ -2,16 +2,16 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
 export const useSimulationStore = defineStore('simulation', () => {
-  const bunnySpeed = ref(2);
+  const leafSpeed = ref(1.5);
   const spawnCount = ref(10);
-  const bunnyCount = ref(0);
+  const leafCount = ref(0);
   const shaderIntensity = ref(0.5);
   const showCollisions = ref(false);
 
   return {
-    bunnySpeed,
+    leafSpeed,
     spawnCount,
-    bunnyCount,
+    leafCount,
     shaderIntensity,
     showCollisions,
   };

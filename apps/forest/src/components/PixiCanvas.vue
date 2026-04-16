@@ -33,9 +33,9 @@ const Scale = { s: new Float32Array(10000) };
 
 const world = createWorld();
 const sprites = new Map<number, Sprite>();
-const bunniesContainer = new Container();
+const leavesContainer = new Container();
 
-// 2. Custom WebGPU Shader (WGSL) for background
+// 2. Custom WebGPU Shader (WGSL) for Forest Background
 const bgGpuShader = `
 struct GlobalFilterUniforms {
   uInputSize: vec4<f32>,
@@ -93,61 +93,49 @@ fn mainFrag(
   @location(0) uv: vec2<f32>,
   @builtin(position) position: vec4<f32>
 ) -> @location(0) vec4<f32> {
-    let t = bgUniforms.time * 0.1;
-    
-    // Calculate accurate screen UV [0, 1] ignoring padding and considering resolution
+    let t = bgUniforms.time * 0.05;
     let screenUV = (position.xy - gfu.uGlobalFrame.xy) / gfu.uGlobalFrame.zw;
-    
     let st = screenUV * 2.0 - 1.0;
     let aspect = bgUniforms.resolution.x / bgUniforms.resolution.y;
     let p = st * vec2<f32>(aspect, 1.0);
     
-    // Convert screen coordinates to normalized shader coordinates [-1, 1] with aspect ratio
     let m = (bgUniforms.mouse * 2.0 - 1.0) * vec2<f32>(aspect, 1.0);
     let distToMouse = length(p - m);
-    let mouseInfluence = smoothstep(0.5, 0.0, distToMouse);
+    let mouseInfluence = smoothstep(0.6, 0.0, distToMouse);
     
-    // Background color: deep space blue/purple, slightly influenced by mouse
-    var color = mix(vec3<f32>(0.02, 0.01, 0.05), vec3<f32>(0.05, 0.02, 0.1), mouseInfluence);
+    // Forest colors: deep green to moss green
+    var color = mix(vec3<f32>(0.05, 0.1, 0.02), vec3<f32>(0.1, 0.2, 0.05), p.y * 0.5 + 0.5);
     
-    // Create "stars" or "nebula" layers
+    // Sunlight rays / shafts
+    let rayAngle = 0.5;
+    let rayPos = p.x * cos(rayAngle) + p.y * sin(rayAngle);
+    let rays = sin(rayPos * 10.0 + t * 2.0) * sin(rayPos * 7.0 - t * 1.5) * 0.5 + 0.5;
+    color += vec3<f32>(0.2, 0.2, 0.05) * pow(rays, 3.0) * (p.y + 1.0);
+
+    // Leaves layers (particles/noise)
     for(var i: f32 = 1.0; i < 4.0; i += 1.0) {
-        // Shift stars based on mouse position (parallax effect)
-        let parallax = m * 0.05 * i;
-        let uv_layer = p * (1.5 + i * 0.5) + vec2<f32>(cos(t * 0.1 * i), sin(t * 0.15 * i)) - parallax;
-        let grid = floor(uv_layer * 15.0);
-        let f = fract(uv_layer * 15.0) - 0.5;
+        let parallax = m * 0.02 * i;
+        let uv_layer = p * (1.0 + i * 0.3) + vec2<f32>(t * 0.2 * i, sin(t * 0.1 * i)) - parallax;
+        let grid = floor(uv_layer * 8.0);
+        let f = fract(uv_layer * 8.0) - 0.5;
         
-        let h = hash(grid + i * 123.456);
-        if (h > 0.985) {
+        let h = hash(grid + i * 567.89);
+        if (h > 0.96) {
             let dist = length(f);
-            let sparkle = sin(bgUniforms.time * 5.0 + h * 10.0) * 0.5 + 0.5;
-            
-            // Stars get brighter near mouse
-            let starBrightness = (0.003 / dist) * sparkle * (1.0 + mouseInfluence * 2.0);
-            color += vec3<f32>(0.8, 0.9, 1.0) * starBrightness;
+            let sway = sin(bgUniforms.time * 2.0 + h * 20.0) * 0.1;
+            let leafBrightness = (0.005 / (dist + 0.01)) * (1.0 + mouseInfluence);
+            color += vec3<f32>(0.1, 0.3, 0.05) * leafBrightness;
         }
     }
     
-    // Nebula clouds with mouse interaction
-    let nebula_pos = p * 0.8 + vec2<f32>(sin(t * 0.2), cos(t * 0.15)) - m * 0.1;
-    let n1 = sin(nebula_pos.x * 2.0 + t) * sin(nebula_pos.y * 3.0 - t);
-    let n2 = sin(nebula_pos.y * 2.5 + t * 0.8) * sin(nebula_pos.x * 1.5 - t * 0.5);
-    
-    let nebulaBase = (n1 + n2 + 1.0) * 0.5;
-    color += vec3<f32>(0.15, 0.08, 0.25) * nebulaBase * (1.0 + mouseInfluence);
-    
-    // Add a subtle glow around the mouse
-    color += vec3<f32>(0.1, 0.2, 0.4) * exp(-distToMouse * 4.0);
+    // Soft glow around mouse (sunlight through canopy)
+    color += vec3<f32>(0.3, 0.3, 0.1) * exp(-distToMouse * 3.0) * 0.4;
     
     return vec4<f32>(color, 1.0);
 }
 `;
 
-// 3. Custom WebGPU Shader (WGSL) for bunnies
-// Pixi v8 Filter WGSL conventions:
-// - Global uniforms (uInputSize, etc.) are at @group(0) @binding(0)
-// - Filter-specific resources (uTexture, uSampler, myUniforms) are in @group(1)
+// 3. Custom WebGPU Shader (WGSL) for leaves
 const gpuShader = `
 struct GlobalFilterUniforms {
   uInputSize: vec4<f32>,
@@ -208,28 +196,24 @@ fn mainFrag(
   let t = myUniforms.time * 0.5;
   let i = myUniforms.intensity;
 
-  // Space-like effect for bunnies: pulsing nebula glow + star sparkles
+  // Leaf effect: swaying colors + subsurface scattering glow
   let st = uv * 2.0 - 1.0;
-  let dist = length(st);
   
-  // Pulsing blue/purple core
-  let pulse = sin(t * 2.0) * 0.2 + 0.8;
-  let nebulaColor = vec3<f32>(0.2, 0.4, 1.0) * pulse;
+  // Pulsing green/yellow
+  let pulse = sin(t * 1.5 + uv.x * 5.0) * 0.1 + 0.9;
+  let leafColor = vec3<f32>(0.4, 0.8, 0.1) * pulse;
   
-  // Star sparkle effect inside the bunny
-  let sparkle = sin(st.x * 10.0 + t * 5.0) * cos(st.y * 10.0 - t * 3.0);
-  let stars = smoothstep(0.7, 1.0, sparkle) * vec3<f32>(1.0, 1.0, 1.0);
+  // Sunlight highlight
+  let sunPos = vec2<f32>(0.5, -0.5);
+  let highlight = pow(max(0.0, dot(st, sunPos)), 3.0);
+  let finalEffect = leafColor + vec3<f32>(0.5, 0.5, 0.1) * highlight;
 
-  let finalEffect = mix(nebulaColor, nebulaColor + stars, 0.5);
-
-  // Mix original bunny texture with the space effect
-  color = vec4<f32>(mix(color.rgb, finalEffect * color.rgb * 2.0, i), color.a);
+  color = vec4<f32>(mix(color.rgb, finalEffect * color.rgb * 1.5, i), color.a);
 
   return color;
 }
 `;
 
-// Create UniformGroups
 const bgUniforms = new UniformGroup({
   time: { value: 0.0, type: 'f32' },
   resolution: {
@@ -250,65 +234,45 @@ let customFilter: Filter;
 onMounted(async () => {
   if (!container.value) return;
 
-  // Initialize PixiJS
   await app.init({
-    backgroundAlpha: 0, // Let the background shader show through
+    backgroundAlpha: 0,
     resizeTo: window,
     preference: 'webgpu',
     antialias: false,
   });
 
-  // Create background filter
   bgFilter = Filter.from({
     gpu: {
-      vertex: {
-        source: bgGpuShader,
-        entryPoint: 'mainVertex',
-      },
-      fragment: {
-        source: bgGpuShader,
-        entryPoint: 'mainFrag',
-      },
+      vertex: { source: bgGpuShader, entryPoint: 'mainVertex' },
+      fragment: { source: bgGpuShader, entryPoint: 'mainFrag' },
     },
-    resources: {
-      bgUniforms,
-    },
+    resources: { bgUniforms },
     padding: 0,
   });
 
-  // Create bunnies filter
   customFilter = Filter.from({
     gpu: {
-      vertex: {
-        source: gpuShader,
-        entryPoint: 'mainVertex',
-      },
-      fragment: {
-        source: gpuShader,
-        entryPoint: 'mainFrag',
-      },
+      vertex: { source: gpuShader, entryPoint: 'mainVertex' },
+      fragment: { source: gpuShader, entryPoint: 'mainFrag' },
     },
-    resources: {
-      myUniforms,
-    },
+    resources: { myUniforms },
   });
 
   container.value.appendChild(app.canvas);
 
-  // Create background sprite
   const bg = new Sprite(Texture.WHITE);
   bg.width = app.screen.width;
   bg.height = app.screen.height;
   bg.filters = [bgFilter];
   app.stage.addChild(bg);
 
-  // Set up bunnies container
-  bunniesContainer.filters = [customFilter];
-  app.stage.addChild(bunniesContainer);
+  leavesContainer.filters = [customFilter];
+  app.stage.addChild(leavesContainer);
 
-  const texture = await Assets.load('https://pixijs.com/assets/bunny.png');
+  // Using flowerTop as a "leaf" equivalent
+  const texture = await Assets.load('https://pixijs.com/assets/flowerTop.png');
 
-  const spawnBunny = (x: number, y: number) => {
+  const spawnLeaf = (x: number, y: number) => {
     const eid = addEntity(world);
     addComponent(world, eid, Position);
     addComponent(world, eid, Velocity);
@@ -318,23 +282,23 @@ onMounted(async () => {
     Position.x[eid] = x;
     Position.y[eid] = y;
     const angle = Math.random() * Math.PI * 2;
-    const speed = Math.random() * 2 + 1;
+    const speed = Math.random() * 1.5 + 0.5; // Slower than bunnies
     Velocity.x[eid] = Math.cos(angle) * speed;
     Velocity.y[eid] = Math.sin(angle) * speed;
-    Rotation.angle[eid] = 0;
-    Rotation.angularVelocity[eid] = (Math.random() - 0.5) * 0.1;
-    Scale.s[eid] = 0.5 + Math.random() * 0.5;
+    Rotation.angle[eid] = Math.random() * Math.PI * 2;
+    Rotation.angularVelocity[eid] = (Math.random() - 0.5) * 0.05;
+    Scale.s[eid] = 0.3 + Math.random() * 0.4;
 
     const sprite = new Sprite(texture);
     sprite.anchor.set(0.5);
     sprite.scale.set(Scale.s[eid]);
-    bunniesContainer.addChild(sprite);
+    leavesContainer.addChild(sprite);
     sprites.set(eid, sprite);
-    store.bunnyCount++;
+    store.leafCount++;
   };
 
-  for (let i = 0; i < 50; i++) {
-    spawnBunny(
+  for (let i = 0; i < 30; i++) {
+    spawnLeaf(
       Math.random() * app.screen.width,
       Math.random() * app.screen.height,
     );
@@ -345,11 +309,10 @@ onMounted(async () => {
 
   app.stage.on('pointerdown', (e) => {
     for (let i = 0; i < store.spawnCount; i++) {
-      spawnBunny(e.global.x, e.global.y);
+      spawnLeaf(e.global.x, e.global.y);
     }
   });
 
-  // Handle resize explicitly to update background sprite and uniforms
   window.addEventListener('resize', () => {
     if (bg) {
       bg.width = app.screen.width;
@@ -360,24 +323,27 @@ onMounted(async () => {
 
   const movementSystem = (world: World, delta: number) => {
     const ents = query(world, [Position, Velocity, Rotation]);
-    const speedMultiplier = store.bunnySpeed;
+    const speedMultiplier = store.leafSpeed;
 
     for (const eid of ents) {
+      // Add a bit of "wind" sway
+      Velocity.x[eid] += Math.sin(time * 0.5 + Position.y[eid] * 0.01) * 0.01;
+      
       Position.x[eid] += Velocity.x[eid] * speedMultiplier * delta;
       Position.y[eid] += Velocity.y[eid] * speedMultiplier * delta;
       Rotation.angle[eid] += Rotation.angularVelocity[eid] * delta;
 
-      if (Position.x[eid] < 0) Position.x[eid] = app.screen.width;
-      if (Position.x[eid] > app.screen.width) Position.x[eid] = 0;
-      if (Position.y[eid] < 0) Position.y[eid] = app.screen.height;
-      if (Position.y[eid] > app.screen.height) Position.y[eid] = 0;
+      if (Position.x[eid] < -50) Position.x[eid] = app.screen.width + 50;
+      if (Position.x[eid] > app.screen.width + 50) Position.x[eid] = -50;
+      if (Position.y[eid] < -50) Position.y[eid] = app.screen.height + 50;
+      if (Position.y[eid] > app.screen.height + 50) Position.y[eid] = -50;
     }
   };
 
   const collisionSystem = (world: World) => {
     if (!store.showCollisions) return;
     const ents = query(world, [Position, Velocity]);
-    const radius = 15;
+    const radius = 12;
 
     for (let i = 0; i < ents.length; i++) {
       const e1 = ents[i];
@@ -419,16 +385,11 @@ onMounted(async () => {
     collisionSystem(world);
     renderingSystem(world);
 
-    // Update using the stable myUniforms reference
     myUniforms.uniforms.intensity = store.shaderIntensity;
     myUniforms.uniforms.time = time;
-
-    // Update background uniforms
     bgUniforms.uniforms.time = time;
     bgUniforms.uniforms.resolution = [app.screen.width, app.screen.height];
 
-    // Use app.renderer.events.pointer.global directly without manual scaling
-    // Pixi's global pointer is already in screen coordinates
     const globalMouse = app.renderer.events.pointer.global;
     if (globalMouse.x >= 0 && globalMouse.y >= 0) {
       bgUniforms.uniforms.mouse = [
@@ -437,7 +398,6 @@ onMounted(async () => {
       ];
     }
 
-    // Ensure background sprite covers the screen
     const bg = app.stage.getChildAt(0) as Sprite;
     if (bg) {
       bg.width = app.screen.width;
