@@ -6,6 +6,8 @@ A high-performance monorepo for exploring cutting-edge web technologies, specifi
 
 PixiVue-Lab is a "lab" project designed to test the limits of modern web graphics and state management. It demonstrates how to combine the declarative nature of Vue with the raw performance of WebGPU and data-oriented ECS.
 
+The project is structured to host multiple parallel experiments, each accessible via its own subdirectory on GitHub Pages.
+
 ## 🛠️ Tech Stack
 
 - **Core Engine**: [PixiJS v8](https://pixijs.com/) — Leveraging the latest WebGPU and WebGL2 rendering capabilities.
@@ -17,14 +19,15 @@ PixiVue-Lab is a "lab" project designed to test the limits of modern web graphic
 
 ## 📂 Project Structure
 
-\`\`\`bash
+```bash
 PixiVue-Lab/
 ├── apps/
-│   └── bunnies/      # High-performance stress test (Bunnymark)
-├── packages/         # Shared utilities and types (upcoming)
-├── turbo.json        # Pipeline configuration
-└── package.json      # Monorepo workspace configuration
-\`\`\`
+│   ├── bunnies/      # 🐰 Space-themed high-performance stress test
+│   └── forest/       # 🌲 Forest-themed simulation with sunlight shaders
+├── packages/         # Shared utilities and types
+├── .github/          # CI/CD workflows for multi-project deployment
+└── README.md         # This documentation
+```
 
 ## 🚀 Getting Started
 
@@ -35,31 +38,36 @@ PixiVue-Lab/
 
 ### Installation
 
-\`\`\`bash
+```bash
 # Clone the repository
 git clone https://github.com/your-username/PixiVue-Lab.git
 cd PixiVue-Lab
 
 # Install dependencies
 bun install
-\`\`\`
+```
 
 ### Running Locally
 
-\`\`\`bash
+```bash
 # Start all applications in development mode
 bun dev
-\`\`\`
 
-## 🐇 Current Experiments
+# Run specific application
+bun dev --filter forest
+```
+
+## 🧪 Current Experiments
 
 ### 1. Bunnies (apps/bunnies)
-A modern take on the classic "Bunnymark". 
-- **Features**:
-  - Thousands of interactive bunnies managed via **BitECS**.
-  - Custom **WGSL** background and post-processing shaders.
-  - Interactive mouse-driven particle effects.
-  - Real-time simulation control panel built with Vue + Pinia.
+A modern take on the classic "Bunnymark" in deep space.
+- **Theme**: Deep space, nebula, stars.
+- **Shaders**: Procedural space background, pulsing nebula glow on entities.
+
+### 2. Forest (apps/forest)
+An organic-themed simulation exploring sunlight and wind effects.
+- **Theme**: Forest canopy, moss, sunlight shafts.
+- **Shaders**: Sunlight beams (sun shafts), wind-driven swaying animations, subsurface scattering effects on leaves.
 
 ## 📜 License
 
