@@ -10,7 +10,7 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Требуется для записи в ветку gh-pages
+      contents: write
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v4
@@ -26,13 +26,58 @@ jobs:
       - name: Lint 🔍
         run: bun lint
 
-      - name: Build 🚀
+      - name: Build All 🚀
         run: bun run build
+
+      - name: Prepare Deployment Directory 📂
+        run: |
+          mkdir -p deploy_dist
+          
+          # Копируем bunnies в подпапку
+          if [ -d "apps/bunnies/dist" ]; then
+            cp -r apps/bunnies/dist deploy_dist/bunnies
+          fi
+          
+          # Копируем forest в подпапку
+          if [ -d "apps/forest/dist" ]; then
+            cp -r apps/forest/dist deploy_dist/forest
+          fi
+          
+          # Создаем навигационную страницу в корне
+          cat <<'HTML' > deploy_dist/index.html
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>PixiVue Lab Projects</title>
+              <style>
+                  body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #1a1a1a; color: white; }
+                  .container { text-align: center; }
+                  h1 { color: #42b883; }
+                  ul { list-style: none; padding: 0; }
+                  li { margin: 10px 0; }
+                  a { color: #646cff; text-decoration: none; font-size: 1.2rem; transition: color 0.3s; }
+                  a:hover { color: #535bf2; }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <h1>PixiVue Lab</h1>
+                  <p>Выберите проект:</p>
+                  <ul>
+                      <li><a href="bunnies/">🐰 Bunnies Project</a></li>
+                      <li><a href="forest/">🌲 Forest Project</a></li>
+                  </ul>
+              </div>
+          </body>
+          </html>
+          HTML
 
       - name: Deploy to GitHub Pages 🚀
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./apps/bunnies/dist
+          publish_dir: ./deploy_dist
           force_orphan: true
