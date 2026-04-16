@@ -1,5 +1,7 @@
 # PixiVue-Lab 🚀
 
+[**Live Demo**](https://ecsmos.github.io/PixiVue-Lab/)
+
 A high-performance monorepo for exploring cutting-edge web technologies, specifically focused on **WebGPU**, **PixiJS v8**, and **Entity-Component-System (ECS)** patterns within the **Vue 3** ecosystem.
 
 ## 🌟 Overview
@@ -40,7 +42,7 @@ PixiVue-Lab/
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/PixiVue-Lab.git
+git clone https://github.com/ecsmos/PixiVue-Lab.git
 cd PixiVue-Lab
 
 # Install dependencies
@@ -59,12 +61,12 @@ bun dev --filter forest
 
 ## 🧪 Current Experiments
 
-### 1. Bunnies (apps/bunnies)
+### 1. [Bunnies](https://ecsmos.github.io/PixiVue-Lab/bunnies/) (apps/bunnies)
 A modern take on the classic "Bunnymark" in deep space.
 - **Theme**: Deep space, nebula, stars.
 - **Shaders**: Procedural space background, pulsing nebula glow on entities.
 
-### 2. Forest (apps/forest)
+### 2. [Forest](https://ecsmos.github.io/PixiVue-Lab/forest/) (apps/forest)
 An organic-themed simulation exploring sunlight and wind effects.
 - **Theme**: Forest canopy, moss, sunlight shafts.
 - **Shaders**: Sunlight beams (sun shafts), wind-driven swaying animations, subsurface scattering effects on leaves.
